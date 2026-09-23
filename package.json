@@ -1,0 +1,38 @@
+{
+  "name": "eccomerce-mern-ai-integrated",
+  "version": "1.0.0",
+  "description": "This is compelety unique eccomerce with integration with ai",
+  "keywords": [
+    "eccomerce",
+    "ai",
+    "integrated",
+    "mern",
+    "website"
+  ],
+  "workspaces": ["storefront", "admin", "backend", "packages/*"],
+  "private": true,
+  "scripts": {
+   "dev:storefront": "npm run dev --workspace storefront",
+   "dev:admin" : "npm run dev --workspace admin",
+   "dev:backend" : "npm run dev --workspace backend",
+   "dev" : "concurrently -n storefront,admin,backend -c blue,magenta,green \"npm run dev:storefront\" \"npm run dev:admin\" \"npm run dev:backend\"",
+   "build" : "concurrently -n storefront,admin,backend -c blue,magenta,green \"npm run build --workspace storefront\" \"npm run build --workspace admin\" \"npm run build --workspace backend\"",
+   "start" : "concurrently -n storefront,admin,backend -c blue,magenta,green \"npm run start --workspace storefront\" \"npm run start --workspace admin\" \"npm run start --workspace backend\"",
+   "lint" : "npm run lint --workspaces --if-present",
+   "typecheck" : "npm run typecheck --workspaces --if-present",
+   "test" : "npm run test --workspaces --if-present",
+   "test:watch" : "npm run test:watch --workspaces --if-present",
+   "format" : "prettier --write .",
+   "format:check" : "prettier --check .",
+   "clean" : "npm run clean --workspaces --if-present && rimraf node_modules",
+   "prepare" : "husky install"
+  },
+  "license": "ISC",
+  "author": "Swarup",
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "husky": "^9.1.7",
+    "prettier": "^3.4.2",
+    "rimraf": "^6.0.1"
+  }
+}
