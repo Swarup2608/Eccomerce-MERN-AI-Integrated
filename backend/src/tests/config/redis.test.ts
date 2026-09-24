@@ -10,19 +10,36 @@ test("connects and logs a success message", async (t) => {
   await connectRedis();
 
   assert.equal(connectMock.mock.callCount(), 1);
-  assert.ok(logMock.mock.calls.some((call) => call.arguments[0] === "Redis connected successfully"));
+  const logged = JSON.parse(logMock.mock.calls[0].arguments[0] as string);
+  assert.equal(logged.level, "INFO");
+  assert.equal(logged.message, "Redis connected successfully");
 });
 
-test("logs and swallows the error instead of throwing when connecting fails", async (t) => {
+test("logs and rethrows the error when connecting fails", async (t) => {
   const error = new Error("ECONNREFUSED");
   t.mock.method(redisClient, "connect", async () => {
     throw error;
   });
-  const errorMock = t.mock.method(console, "error", () => {});
+  const logMock = t.mock.method(console, "log", () => {});
 
-  await assert.doesNotReject(connectRedis());
+  await assert.rejects(connectRedis(), error);
 
-  assert.ok(errorMock.mock.calls.some((call) => call.arguments[0] === "Error connecting to Redis:" && call.arguments[1] === error));
+  const logged = JSON.parse(logMock.mock.calls[0].arguments[0] as string);
+  assert.equal(logged.level, "ERROR");
+  assert.equal(logged.message, "Error connecting to Redis:");
+  assert.equal(logged.error, "ECONNREFUSED");
+});
+
+test("logs but does not throw when the client emits a connection error", (t) => {
+  const logMock = t.mock.method(console, "log", () => {});
+  const error = new Error("connection lost");
+
+  assert.doesNotThrow(() => redisClient.emit("error", error));
+
+  const logged = JSON.parse(logMock.mock.calls[0].arguments[0] as string);
+  assert.equal(logged.level, "ERROR");
+  assert.equal(logged.message, "Redis connection error:");
+  assert.equal(logged.error, "connection lost");
 });
 
 test("isRedisConnected reflects the client status", () => {
