@@ -12,7 +12,7 @@ app.use(requestId);
 app.use(cors());
 app.use(express.json());
 
-app.get("/api/health", (_req, res) => {
+app.get("/api/v1/health", (_req, res) => {
   const mongoConnected = mongoose.connection.readyState === 1;
   const redisConnected = isRedisConnected();
 

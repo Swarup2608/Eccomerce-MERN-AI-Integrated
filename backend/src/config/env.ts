@@ -1,3 +1,4 @@
+import "dotenv/config";
 import zod from "zod";
 
 export const envSchema = zod.object({
