@@ -2,9 +2,13 @@ import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import { isRedisConnected } from "./config/redis.js";
+import { errorHandler } from "./middleware/errorHandler.js";
+import { requestId } from "./middleware/requestId.js";
+import { AppError } from "./errors/AppError.js";
 
 const app = express();
 
+app.use(requestId);
 app.use(cors());
 app.use(express.json());
 
@@ -20,5 +24,13 @@ app.get("/api/health", (_req, res) => {
     },
   });
 });
+
+
+app.use((req, _res, next) => {
+  next(new AppError(404, "NOT_FOUND", `Route ${req.method} ${req.originalUrl} not found`));
+});
+
+// Error handling middleware should be registered after all routes
+app.use(errorHandler);
 
 export default app;

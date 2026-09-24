@@ -2,7 +2,7 @@ import "dotenv/config";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import mongoose from "mongoose";
-import connectDb from "../../config/moongose.js";
+import connectDb from "../../config/mongoose.js";
 
 test("connects to MongoDB and logs a success message", async (t) => {
   const connectMock = t.mock.method(mongoose, "connect", async () => mongoose);
