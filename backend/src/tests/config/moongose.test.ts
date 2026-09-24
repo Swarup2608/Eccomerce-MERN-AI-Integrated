@@ -2,7 +2,7 @@ import "dotenv/config";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import mongoose from "mongoose";
-import connectDb from "../../config/moongose.js";
+import connectDb from "../../config/mongoose.js";
 
 test("connects to MongoDB and logs a success message", async (t) => {
   const connectMock = t.mock.method(mongoose, "connect", async () => mongoose);
@@ -11,17 +11,22 @@ test("connects to MongoDB and logs a success message", async (t) => {
   await connectDb();
 
   assert.equal(connectMock.mock.callCount(), 1);
-  assert.ok(logMock.mock.calls.some((call) => call.arguments[0] === "MongoDB connected successfully"));
+  const logged = JSON.parse(logMock.mock.calls[0].arguments[0] as string);
+  assert.equal(logged.level, "INFO");
+  assert.equal(logged.message, "MongoDB connected successfully");
 });
 
-test("logs and swallows the error instead of throwing when the connection fails", async (t) => {
+test("logs and rethrows the error when the connection fails", async (t) => {
   const error = new Error("connection refused");
   t.mock.method(mongoose, "connect", async () => {
     throw error;
   });
-  const errorMock = t.mock.method(console, "error", () => {});
+  const logMock = t.mock.method(console, "log", () => {});
 
-  await assert.doesNotReject(connectDb());
+  await assert.rejects(connectDb(), error);
 
-  assert.ok(errorMock.mock.calls.some((call) => call.arguments[0] === "Error connecting to MongoDB:" && call.arguments[1] === error));
+  const logged = JSON.parse(logMock.mock.calls[0].arguments[0] as string);
+  assert.equal(logged.level, "ERROR");
+  assert.equal(logged.message, "Error connecting to MongoDB:");
+  assert.equal(logged.error, "connection refused");
 });
