@@ -57,14 +57,24 @@ This project is early — foundation stage, no storefront/admin features yet.
   (`backend/src/config/redis.ts`), and environment validation with Zod
   (`backend/src/config/env.ts`) so the server won't boot with missing
   config.
-- **Health check**: a `/api/health` endpoint reports live Mongo and Redis
-  connection status.
-- **Test suite**: coverage for app initialization and DB/Redis connectivity
-  under `backend/src/tests/`.
+- **Health and readiness**: `GET /api/v1/health` (liveness) always returns
+  200 with live Mongo and Redis connection status; `GET /api/v1/ready`
+  returns 200 only when both are connected and 503 otherwise, so a load
+  balancer or orchestrator can hold traffic until the API can serve it.
+- **Error handling and logging**: a central error handler with a consistent
+  error response shape, structured JSON logs, and a request ID on every
+  request.
+- **Data model**: Mongoose schemas for users, vendors, products, inventory,
+  carts, orders, payments, coupons, campaigns, and more under
+  `backend/src/modules/`.
+- **Test suite**: `npm test` runs the backend suite (app initialization,
+  DB/Redis connectivity, health/readiness, error handling) under
+  `backend/src/tests/`. `npm run typecheck` type-checks all three
+  workspaces; frontend component tests come with the first real UI.
 - **Tooling**: shared lint/typecheck/build/test scripts across workspaces,
   Prettier, Husky installed (pre-commit hook not yet wired up).
 
-Not built yet: authentication, data models (User/Product/Cart/Order/Coupon),
+Not built yet: authentication, API routes on top of the data model,
 cart/checkout/payments, the admin UI, and all AI features. See
 [ROADMAP.md](ROADMAP.md) for the phased plan and current status in detail.
 
