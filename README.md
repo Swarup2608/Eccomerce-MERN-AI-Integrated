@@ -74,12 +74,9 @@ are next. No storefront or admin features exist yet. See
   (`backend/src/utils/logger.ts`). Every request gets a request ID (taken
   from the `x-request-id` header or generated), which is echoed in the
   response header and included in error logs and responses.
-- **Data model**: 39 Mongoose schemas across 20 domain modules in
-  `backend/src/modules/`, including users, vendors, products and variants,
-  categories, brands, inventory, carts, wishlists, orders, payments,
-  shipments, returns, coupons, campaigns, commissions, reviews, product
-  Q&A, support tickets, notifications, and audit logs. Statuses and roles are
-  enums, and hot fields are indexed.
+- **Data model**: 39 Mongoose models across 20 domain modules in
+  `backend/src/modules/`, modeling a multi-vendor marketplace. See
+  [Data Model](#data-model) below.
 - **Tests**: 29 backend tests covering env validation, Mongo/Redis
   connection handling, health/readiness, error handling, request IDs, and
   `AppError`.
@@ -188,6 +185,101 @@ Every error response has the same shape:
   }
 }
 ```
+
+## Data Model
+
+The backend models a **multi-vendor marketplace**: many vendors can sell
+the same catalog product, each at their own price and stock level. There
+are 39 Mongoose models in `backend/src/modules/<Module>/<name>.model.ts`.
+Each file exports its TypeScript interface and status enums with the model.
+Models don't have API routes yet.
+
+### Modules
+
+| Module           | Models                                                                                          | Purpose                                                                                           |
+| ---------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **User**         | `User`, `UserAddress`                                                                           | Accounts with roles (`user`, `vendor`, `admin`, `super_admin`) and saved addresses                |
+| **Vendor**       | `Vendor`, `VendorStore`, `VendorOnboarding`, `VendorDocument`, `VendorAddress`, `VendorBankAccount` | Seller business profile, public storefront, step-by-step onboarding, KYC documents, payout bank accounts |
+| **Category**     | `Category`                                                                                      | Hierarchical categories (`parentCategoryId`)                                                      |
+| **Brand**        | `Brand`                                                                                         | Product brands                                                                                    |
+| **Product**      | `Product`, `ProductVariant`, `VendorProduct`, `VendorProductVariant`                            | Shared catalog (product + variants) and each vendor's listing of it, with price and SKU           |
+| **Inventory**    | `Inventory`, `InventoryTransaction`                                                             | Stock per vendor variant, and a ledger of every stock movement                                    |
+| **Cart**         | `Cart`                                                                                          | One cart per user, with line items and an applied coupon                                          |
+| **Wishlist**     | `Wishlist`                                                                                      | One wishlist per user                                                                             |
+| **Order**        | `Order`, `VendorOrder`, `OrderItem`, `OrderStatusHistory`                                       | Customer order split into one sub-order per vendor, line items, and a status audit trail          |
+| **Payment**      | `Payment`, `PaymentTransaction`, `VendorPayout`                                                 | Payments via Razorpay/Stripe, provider transactions (capture, refund…), and vendor payouts        |
+| **Shipment**     | `Shipment`                                                                                      | Shipping and tracking per vendor order                                                            |
+| **Return**       | `ReturnRequest`, `ReturnItem`                                                                   | Return requests per vendor order, and which items are being returned                              |
+| **Coupon**       | `Coupon`, `CouponUsage`                                                                         | Percentage or fixed discounts (platform-wide, vendor-specific, or campaign-linked), and who used them |
+| **Campaign**     | `Campaign`, `CampaignProduct`                                                                   | Time-boxed sales (festival, flash sale, seasonal, clearance) and the products they discount       |
+| **Commission**   | `CommissionRule`                                                                                | Platform commission on vendor sales, set globally, per vendor, or per category                    |
+| **Review**       | `Review`                                                                                        | Product reviews, one per purchased order item                                                     |
+| **ProductQA**    | `ProductQuestion`, `ProductAnswer`                                                              | Customer questions on products, answered by users or vendors                                      |
+| **Support**      | `SupportTicket`                                                                                 | Customer support tickets, optionally linked to an order or vendor                                 |
+| **Notification** | `Notification`                                                                                  | In-app notifications per user                                                                     |
+| **AuditLog**     | `AuditLog`                                                                                      | Record of who did what, for admin and security review                                             |
+
+### How the core entities relate
+
+```
+Category ─┐
+Brand ────┼─> Product ─> ProductVariant            (shared catalog)
+          │      │             │
+Vendor ───┴─> VendorProduct ─> VendorProductVariant ─> Inventory ─> InventoryTransaction
+                                    │                (price, SKU)
+User ─> Cart ───────────────────────┘
+  │
+  └─> Order ─┬─> VendorOrder (one per vendor) ─┬─> Shipment
+             │                                 ├─> ReturnRequest ─> ReturnItem
+             │                                 └─> VendorPayout
+             ├─> OrderItem ─> Review
+             ├─> OrderStatusHistory
+             ├─> Payment ─> PaymentTransaction
+             └─> CouponUsage <─ Coupon <─ Campaign
+```
+
+### Design decisions
+
+- **Catalog separate from listings.** `Product`/`ProductVariant` describe
+  *what* an item is; `VendorProduct`/`VendorProductVariant` describe *who*
+  sells it, at what price, and under which SKU. Carts, inventory, and
+  campaigns point at the vendor variant.
+- **Orders split per vendor.** A checkout creates one `Order` for the
+  customer and one `VendorOrder` per seller, so each vendor ships, handles
+  returns, and gets paid independently.
+- **Snapshots at checkout.** Orders copy the shipping address, and order
+  items copy the product name, SKU, and unit price, at purchase time. Later
+  edits to an address or listing don't change past orders.
+- **Totals checked on save.** An `OrderItem` is rejected if its discount
+  exceeds the line amount or if `total` ≠ `unitPrice × quantity − discount
+  + tax`. A `VendorProductVariant`'s `compareAtPrice` can't be below its
+  `price`.
+- **Stock as a ledger.** `Inventory` tracks `quantity` and
+  `reservedQuantity` (reserved can never exceed quantity) and uses a
+  `version` field for optimistic locking against concurrent updates. Every
+  change is written to `InventoryTransaction` (stock in, sale, reservation,
+  release, return, adjustment).
+- **Idempotency at the database level.** Unique indexes stop duplicates
+  that a retried webhook or double-click could otherwise create: one
+  `Payment` per provider payment ID, one `PaymentTransaction` per provider
+  transaction ID, one `VendorPayout` per vendor order and per payout
+  reference, one `CouponUsage` per coupon per order, and one `Review` per
+  order item.
+- **Status history, not just status.** Order and vendor-order status changes
+  are recorded in `OrderStatusHistory` with who made the change.
+- **One default per owner.** Partial unique indexes allow only one default
+  address per user or vendor and one default bank account per vendor.
+- **Sensitive fields hidden by default.** `User.passwordHash` uses
+  `select: false`, so it's never returned unless a query asks for it
+  explicitly.
+- **Enums and indexes throughout.** Every status, role, and type is an enum
+  exported as a constant (e.g. `ORDER_STATUSES`). Lookup fields are indexed.
+  Email, username, phone number, slugs, order numbers, and coupon codes are
+  unique, and SKUs are unique within each vendor listing.
+
+Known gap: money fields (`price`, `subtotal`, `total`, `amount`) are plain
+numbers and don't yet enforce integer minor units (paise/cents). This is
+tracked in [ROADMAP.md](ROADMAP.md) (finding #27).
 
 ## Scripts
 
