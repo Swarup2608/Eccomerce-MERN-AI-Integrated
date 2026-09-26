@@ -1,13 +1,12 @@
 import { Schema, model } from "mongoose";
-
-const USER_ROLES = {
+export const USER_ROLES = {
   USER: "user",
   ADMIN: "admin",
   VENDOR: "vendor",
   SUPER_ADMIN: "super_admin",
 } as const;
 
-const USER_STATUSES = {
+export const USER_STATUSES = {
   ACTIVE: "active",
   INACTIVE: "inactive",
   DELETED: "deleted",

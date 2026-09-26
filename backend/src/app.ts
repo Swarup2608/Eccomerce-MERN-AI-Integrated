@@ -5,6 +5,7 @@ import { isRedisConnected } from "./config/redis.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { requestId } from "./middleware/requestId.js";
 import { AppError } from "./errors/AppError.js";
+import authRoutes from "./routes/auth.routes.js";
 
 const app = express();
 
@@ -38,6 +39,8 @@ app.get("/api/v1/ready", (_req, res) => {
 
   res.status(ready ? 200 : 503).json({ status: ready ? "ready" : "not_ready", configs });
 });
+
+app.use("/api/v1/auth",authRoutes);
 
 app.use((req, _res, next) => {
   next(new AppError(404, "NOT_FOUND", `Route ${req.method} ${req.originalUrl} not found`));
