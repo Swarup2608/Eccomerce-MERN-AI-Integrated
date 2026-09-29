@@ -6,6 +6,8 @@ import { envSchema } from "../../config/env.js";
 const REQUIRED_VARS = {
   MONGO_URI: "mongodb://localhost:27017/test",
   REDIS_URL: "redis://localhost:6379",
+  JWT_SECRET: "a".repeat(32),
+  JWT_REFRESH_SECRET: "b".repeat(32),
 };
 
 test("parses a fully-populated env", () => {
@@ -42,4 +44,16 @@ test("throws when MONGO_URI is an empty string", () => {
 
 test("throws when REDIS_URL is an empty string", () => {
   assert.throws(() => envSchema.parse({ ...REQUIRED_VARS, REDIS_URL: "" }));
+});
+
+test("throws when a JWT secret is shorter than 32 characters", () => {
+  assert.throws(() => envSchema.parse({ ...REQUIRED_VARS, JWT_SECRET: "short" }));
+});
+
+test("throws when JWT_SECRET and JWT_REFRESH_SECRET are the same", () => {
+  assert.throws(() => envSchema.parse({ ...REQUIRED_VARS, JWT_REFRESH_SECRET: REQUIRED_VARS.JWT_SECRET }));
+});
+
+test("parses COOKIE_SECURE=false as false, not truthy", () => {
+  assert.equal(envSchema.parse({ ...REQUIRED_VARS, COOKIE_SECURE: "false" }).COOKIE_SECURE, false);
 });

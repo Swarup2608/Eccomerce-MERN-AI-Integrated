@@ -17,7 +17,7 @@ export type USER_STATUS_VALUE = (typeof USER_STATUSES)[keyof typeof USER_STATUSE
 
 export type USER_ROLE_VALUE = (typeof USER_ROLES)[keyof typeof USER_ROLES];
 
-interface IUser {
+export interface IUser {
   firstName: string;
   lastName: string;
   email: string;

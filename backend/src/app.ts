@@ -1,17 +1,25 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import mongoose from "mongoose";
+import env from "./config/env.js";
 import { isRedisConnected } from "./config/redis.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { requestId } from "./middleware/requestId.js";
+import { originCheck } from "./middleware/originCheck.js";
 import { AppError } from "./errors/AppError.js";
 import authRoutes from "./routes/auth.routes.js";
 
 const app = express();
 
 app.use(requestId);
-app.use(cors());
-app.use(express.json());
+app.use(helmet());
+// Cookies are only sent cross-origin with credentials, which requires an explicit origin allowlist (never "*")
+app.use(cors({ origin: env.CORS_ORIGINS, credentials: true }));
+app.use(originCheck);
+app.use(express.json({ limit: "10kb" }));
+app.use(cookieParser());
 
 const getDependencyStatus = () => {
   const mongoConnected = mongoose.connection.readyState === 1;
