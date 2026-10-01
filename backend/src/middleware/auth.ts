@@ -1,8 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { AppError } from "../errors/AppError.js";
-import { User, USER_STATUSES, type USER_ROLE_VALUE } from "../modules/User/user.model.js";
-import { isSessionActive } from "../modules/User/session.store.js";
+import { User, USER_STATUSES, type USER_ROLE_VALUE } from "../module/User/user.model.js";
+import { isSessionActive } from "../utils/session.js";
 import { verifyAccessToken, verifyRefreshToken as verifyRefreshJwt } from "../utils/jwt.js";
 import { ACCESS_COOKIE, REFRESH_COOKIE, clearAuthCookies } from "../utils/token.js";
 
@@ -36,7 +36,7 @@ export const authenticate = async (req: Request, _res: Response, next: NextFunct
             throw new AppError(401, "SESSION_REVOKED", "Session is no longer valid");
         }
 
-        const user = await User.findById(payload.sub).select("role status passwordChangedAt").lean();
+        const user = await User.findById(payload.sub).select("role status passwordChangedAt emailVerified phoneNumberVerified").lean();
         if (!user || user.status !== USER_STATUSES.ACTIVE) {
             throw new AppError(401, "SESSION_REVOKED", "Session is no longer valid");
         }
@@ -46,7 +46,7 @@ export const authenticate = async (req: Request, _res: Response, next: NextFunct
         }
 
         // Role comes from the database, not the token, so a demotion takes effect on the next request
-        req.user = { id: payload.sub, role: user.role, sessionId: payload.sid };
+        req.user = { id: payload.sub, role: user.role, sessionId: payload.sid, emailVerified: user.emailVerified, phoneNumberVerified: user.phoneNumberVerified };
         next();
     } catch (error) {
         next(error);
@@ -73,7 +73,7 @@ export const verifyRefreshToken = (req: Request, res: Response, next: NextFuncti
     }
     try {
         const payload = verifyRefreshJwt(token);
-        req.refreshToken = { userId: payload.sub, sessionId: payload.sid, jti: payload.jti };
+        req.refreshToken = { userId: payload.sub, sessionId: payload.sid, jti: payload.jti, issuedAt: payload.iat };
         next();
     } catch {
         clearAuthCookies(res);

@@ -1,4 +1,4 @@
-import type { USER_ROLE_VALUE } from "../modules/User/user.model.js";
+import type { USER_ROLE_VALUE } from "../module/User/user.model.js";
 
 declare global {
     namespace Express {
@@ -6,13 +6,15 @@ declare global {
             id: string;
             role: USER_ROLE_VALUE;
             sessionId: string;
+            emailVerified: boolean;
+            phoneNumberVerified: boolean;
         }
 
         interface Request {
             requestId?: string;
             user?: AuthUser;
             // Set by verifyRefreshToken for the /refresh route
-            refreshToken?: { userId: string; sessionId: string; jti: string };
+            refreshToken?: { userId: string; sessionId: string; jti: string; issuedAt: number };
         }
     }
 }

@@ -8,6 +8,8 @@ const REQUIRED_VARS = {
   REDIS_URL: "redis://localhost:6379",
   JWT_SECRET: "a".repeat(32),
   JWT_REFRESH_SECRET: "b".repeat(32),
+  FRONTEND_URL: "http://localhost:3000",
+  ADMIN_URL: "http://localhost:3001",
 };
 
 test("parses a fully-populated env", () => {

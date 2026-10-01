@@ -1,6 +1,7 @@
 import type { CookieOptions, Response } from "express";
 import env from "../config/env.js";
 import { accessTokenTtlSeconds, refreshTokenTtlSeconds } from "./jwt.js";
+import { createHash, randomBytes } from "crypto";
 
 export const ACCESS_COOKIE = "access_token";
 export const REFRESH_COOKIE = "refresh_token";
@@ -30,4 +31,12 @@ export function setAuthCookies(res: Response, accessToken: string, refreshToken:
 export function clearAuthCookies(res: Response) {
   res.clearCookie(ACCESS_COOKIE, { ...baseCookieOptions(), path: "/" });
   res.clearCookie(REFRESH_COOKIE, { ...baseCookieOptions(), path: REFRESH_COOKIE_PATH });
+}
+
+export function generateRandomToken(bytes = 32): string {
+    return randomBytes(bytes).toString("hex");
+}
+
+export function hashToken(token: string): string {
+    return createHash("sha256").update(token).digest("hex");
 }

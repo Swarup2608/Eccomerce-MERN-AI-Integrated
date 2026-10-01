@@ -1,10 +1,10 @@
 import jwt from "jsonwebtoken";
 import { randomUUID } from "node:crypto";
 import env from "../config/env.js";
-import type { USER_ROLE_VALUE } from "../modules/User/user.model.js";
+import type { USER_ROLE_VALUE } from "../module/User/user.model.js";
 
-const ISSUER = "ecommerce-api";
-const AUDIENCE = "ecommerce-client";
+const ISSUER = "ecommerce-ai-api";
+const AUDIENCE = "ecommerce-ai-client";
 // Pin the algorithm so a token can never pick its own (e.g. "none" or an RS/HS confusion)
 const ALGORITHM = "HS256";
 
@@ -29,14 +29,15 @@ export interface RefreshTokenPayload {
 export const accessTokenTtlSeconds = () => env.JWT_ACCESS_TTL_MINUTES * 60;
 export const refreshTokenTtlSeconds = () => env.JWT_REFRESH_TTL_DAYS * 24 * 60 * 60;
 
-export function signAccessToken(userId: string, sessionId: string, role: USER_ROLE_VALUE): string {
-  return jwt.sign({ sid: sessionId, role, typ: "access" }, env.JWT_SECRET, {
+export function signAccessToken(userId: string, sessionId: string, role: USER_ROLE_VALUE): { token: string } {
+  const token = jwt.sign({ sid: sessionId, role, typ: "access" }, env.JWT_SECRET, {
     algorithm: ALGORITHM,
     subject: userId,
     issuer: ISSUER,
     audience: AUDIENCE,
     expiresIn: accessTokenTtlSeconds(),
   });
+  return { token };
 }
 
 export function signRefreshToken(userId: string, sessionId: string): { token: string; jti: string } {
