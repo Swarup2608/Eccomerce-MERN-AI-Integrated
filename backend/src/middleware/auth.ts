@@ -73,7 +73,7 @@ export const verifyRefreshToken = (req: Request, res: Response, next: NextFuncti
     }
     try {
         const payload = verifyRefreshJwt(token);
-        req.refreshToken = { userId: payload.sub, sessionId: payload.sid, jti: payload.jti };
+        req.refreshToken = { userId: payload.sub, sessionId: payload.sid, jti: payload.jti, issuedAt: payload.iat };
         next();
     } catch {
         clearAuthCookies(res);

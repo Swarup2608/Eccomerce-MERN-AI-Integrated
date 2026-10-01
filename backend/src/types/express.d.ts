@@ -14,7 +14,7 @@ declare global {
             requestId?: string;
             user?: AuthUser;
             // Set by verifyRefreshToken for the /refresh route
-            refreshToken?: { userId: string; sessionId: string; jti: string };
+            refreshToken?: { userId: string; sessionId: string; jti: string; issuedAt: number };
         }
     }
 }

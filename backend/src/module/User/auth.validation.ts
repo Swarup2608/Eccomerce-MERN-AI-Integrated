@@ -5,7 +5,8 @@ const PASSWORD_MAX = 128;
 
 const passwordSchema = z.string().min(8, "Password must be at least 8 characters long").max(PASSWORD_MAX, `Password must be at most ${PASSWORD_MAX} characters long`).regex(/[a-z]/, "Password must contain a lowercase letter").regex(/[A-Z]/, "Password must contain an uppercase letter").regex(/[0-9]/, "Password must contain a number") .regex(/[^A-Za-z0-9]/, "Password must contain a special character");
 
-const emailSchema = z.email("Invalid email address").max(254).trim().toLowerCase();
+// Trim and lowercase run before the format check, so " A@B.com " is accepted and normalised
+const emailSchema = z.string().trim().toLowerCase().max(254).pipe(z.email("Invalid email address"));
 
 // Unknown keys (role, status, emailVerified, ...) are stripped, so they can never reach the model
 const registerSchema = z.object({
@@ -29,7 +30,7 @@ export const verifyEmailSchema = z.object({
 });
 
 export const verifyPhoneSchema = z.object({
-    token: z.string().min(1, "Verification token is required"),
+    code: z.string().trim().regex(/^\d{6}$/, "Verification code must be 6 digits"),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

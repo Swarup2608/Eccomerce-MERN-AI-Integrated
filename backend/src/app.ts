@@ -10,8 +10,12 @@ import { requestId } from "./middleware/requestId.js";
 import { originCheck } from "./middleware/originCheck.js";
 import { AppError } from "./errors/AppError.js";
 import authRoutes from "./routes/auth.routes.js";
+import protectedRoutes from "./routes/protected.routes.js";
 
 const app = express();
+
+// Rate limiting and logging need the real client IP, which sits behind this many proxies
+app.set("trust proxy", env.TRUST_PROXY_HOPS);
 
 app.use(requestId);
 app.use(helmet());
@@ -49,6 +53,8 @@ app.get("/api/v1/ready", (_req, res) => {
 });
 
 app.use("/api/v1/auth",authRoutes);
+// Everything else under /api/v1 requires a logged-in, fully verified user
+app.use("/api/v1", protectedRoutes);
 
 app.use((req, _res, next) => {
   next(new AppError(404, "NOT_FOUND", `Route ${req.method} ${req.originalUrl} not found`));
