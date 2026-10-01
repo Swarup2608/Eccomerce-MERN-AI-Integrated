@@ -1,4 +1,4 @@
-import type { USER_ROLE_VALUE } from "../modules/User/user.model.js";
+import type { USER_ROLE_VALUE } from "../module/User/user.model.js";
 
 declare global {
     namespace Express {
@@ -6,6 +6,8 @@ declare global {
             id: string;
             role: USER_ROLE_VALUE;
             sessionId: string;
+            emailVerified: boolean;
+            phoneNumberVerified: boolean;
         }
 
         interface Request {

@@ -23,6 +23,8 @@ export const envSchema = zod
     NODE_ENV: zod.string().default("development"),
     JWT_SECRET: jwtSecret("JWT_SECRET"),
     JWT_REFRESH_SECRET: jwtSecret("JWT_REFRESH_SECRET"),
+    FRONTEND_URL: zod.string().min(1, "FRONTEND_URL is required"),
+    ADMIN_URL: zod.string().min(1, "ADMIN_URL is required"),
   })
   .refine((env) => env.JWT_SECRET !== env.JWT_REFRESH_SECRET, {
     message: "JWT_SECRET and JWT_REFRESH_SECRET must be different",

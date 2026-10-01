@@ -1,16 +1,10 @@
 import { Router } from "express";
 import {
-    getMeController,
-    loginUserController,
-    logoutAllController,
-    logoutController,
-    refreshController,
-    registerUserController,
-} from "../modules/User/auth.controller.js";
+    RegisterUserController,
+} from "../module/User/auth.controller.js";
 import { validate } from "../middleware/validate.js";
-import { authenticate, verifyRefreshToken } from "../middleware/auth.js";
-import { loginRateLimiter, refreshRateLimiter, registerRateLimiter } from "../utils/rateLimiter.js";
-import { loginSchema, registerSchema } from "../modules/User/auth.validator.js";
+import { registerRateLimiter } from "../utils/rateLimiter.js";
+import { registerSchema } from "../module/User/auth.validation.js";
 
 const router = Router();
 
@@ -21,11 +15,6 @@ router.use((_req, res, next) => {
 });
 
 // Rate limiters run before validation so malformed requests still count towards the limit
-router.post("/register", registerRateLimiter, validate(registerSchema), registerUserController);
-router.post("/login", loginRateLimiter, validate(loginSchema), loginUserController);
-router.post("/refresh", refreshRateLimiter, verifyRefreshToken, refreshController);
-router.post("/logout", logoutController);
-router.post("/logout-all", authenticate, logoutAllController);
-router.get("/me", authenticate, getMeController);
+router.post("/register", registerRateLimiter, validate(registerSchema), RegisterUserController);
 
 export default router;
